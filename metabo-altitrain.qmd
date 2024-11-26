@@ -14,7 +14,10 @@ High level rowers participated in an altitude training camp at 1800m during whic
 library(tidyverse)
 library(data.table)
 library(janitor)
-source(file = "functions.R |> ")
+library(kableExtra)
+library(psych)
+library(ggfortify)
+source(file = "functions.R")
 
 theme_set(new = theme_bw()) # ggplot theme
 ```
@@ -36,4 +39,50 @@ bucket_matrix <- fread("Data/data.csv") |>
   replace_na(list(patho = 0, pathology_during = 0)) |>
   column_to_rownames(var = "Samplecode") |>
   mutate(patho = as.factor(patho))
+```
+
+# Data description
+
+```{r}
+#| label: data-description
+#| fig-align: center
+# Subject description
+describe(x = antrop_data, na.rm = TRUE) |>
+  round(digits = 0) |>
+  select(c("mean", "sd", "median", "min", "max")) |>
+  kable(
+    caption = paste0("Anthropological values (n = ", nrow(x = antrop_data), ")"),
+    table.attr = 'data-quarto-disable-processing="true"'
+  ) |>
+  kable_styling(
+    bootstrap_options = c("striped"),
+    full_width = FALSE
+  )
+
+# PCA on full dataset
+pca_res <- prcomp(x = select(.data = bucket_matrix, -any_of(categories)))
+autoplot(
+  object = pca_res,
+  data = select(.data = bucket_matrix, -any_of(categories)),
+  loadings.label.size = 3
+) +
+  geom_point(
+    mapping = aes(color = bucket_matrix$patho),
+    size = 2
+  ) +
+  geom_text(mapping = aes(label = rownames(bucket_matrix)), vjust = 0, hjust = 0) +
+  stat_ellipse(mapping = aes(group = bucket_matrix$patho, color = bucket_matrix$patho)) +
+  labs(color = "Patho")
+
+# Buckets correlations
+corr_matrix <- cor(select(bucket_matrix, -any_of(categories)), method = "pearson") |> 
+  as.table() |> 
+  as.data.table()
+ggplot(corr_matrix, aes(x = V1, y = V2, fill = N)) +
+  geom_tile() +
+  scale_x_discrete(breaks = levels(corr_matrix$V2)[c(T, rep(F, 14))]) +
+  scale_y_discrete(breaks = levels(corr_matrix$V1)[c(T, rep(F, 14))]) +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(title = "Spectral Data Correlation Heatmap", x = "Chemical Shift (buckets)", y = "Chemical Shift (buckets)")
 ```
