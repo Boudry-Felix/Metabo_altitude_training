@@ -47,3 +47,11 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+## Personal add
+Data
+*_files
+*.html
+biblio.bib
+
+/.quarto/

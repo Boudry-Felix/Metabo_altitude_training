@@ -1,0 +1,22 @@
+format:
+    html:
+      toc: true
+      toc_depth: 3
+      fig-align: center
+      code-links:
+         - text: Github
+           href: https://github.com/Boudry-Felix/Alticamp_metabo.git
+           icon: github
+      other-links:
+        - text: Lab
+          href: https://espace-dev.fr
+        - text: email
+          href: mailto:felix.boudry@univ-perp.fr
+      code-fold: show
+      code-summary: "Show code"
+      code-tools:
+          source: true
+          toggle: true
+theme: 
+    dark: darkly
+    light: flatly

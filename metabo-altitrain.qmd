@@ -1,0 +1,88 @@
+---
+title: "Metabolomics in altitude for trained and untrained subjects"
+author: Félix Boudry
+---
+
+# Context
+
+High level rowers participated in an altitude training camp at 1800m during which urine sammples were retrieved. Here we analyze those samples after they were analysed by NMR.
+
+```{r}
+#| label: config
+#| warning: false
+#| include: false
+library(tidyverse)
+library(data.table)
+library(janitor)
+library(kableExtra)
+library(psych)
+library(ggfortify)
+source(file = "functions.R")
+
+theme_set(new = theme_bw()) # ggplot theme
+```
+
+# Import and pre-processing
+
+Pre-processing was done using [npflow](https://nmrprocflow.org). This pre-processing is based on the [Rnmr1D](https://cran.r-project.org/web/packages/Rnmr1D/index.html) package.
+
+```{r}
+#| label: import & pre-processing
+antrop_data <- fread(input = "Data/subjects.csv") |>
+  clean_names() |>
+  select(c("age", "height", "weight"))
+categories <- c("patho", "day", "Samplecode", "name", "surname", "discriminant", "date", "quality", "pathology_during")
+bucket_matrix <- fread("Data/data.csv") |>
+  mutate(across(-any_of(categories), ~ ReplaceMissingByLoD(int.mat = .x))) |>
+  mutate(across(-any_of(categories), ~ scale(.x))) |>
+  merge(fread("Data/samples.csv"), by = "Samplecode") |>
+  replace_na(list(patho = 0, pathology_during = 0)) |>
+  column_to_rownames(var = "Samplecode") |>
+  mutate(patho = as.factor(patho))
+```
+
+# Data description
+
+```{r}
+#| label: data-description
+#| fig-align: center
+# Subject description
+describe(x = antrop_data, na.rm = TRUE) |>
+  round(digits = 0) |>
+  select(c("mean", "sd", "median", "min", "max")) |>
+  kable(
+    caption = paste0("Anthropological values (n = ", nrow(x = antrop_data), ")"),
+    table.attr = 'data-quarto-disable-processing="true"'
+  ) |>
+  kable_styling(
+    bootstrap_options = c("striped"),
+    full_width = FALSE
+  )
+
+# PCA on full dataset
+pca_res <- prcomp(x = select(.data = bucket_matrix, -any_of(categories)))
+autoplot(
+  object = pca_res,
+  data = select(.data = bucket_matrix, -any_of(categories)),
+  loadings.label.size = 3
+) +
+  geom_point(
+    mapping = aes(color = bucket_matrix$patho),
+    size = 2
+  ) +
+  geom_text(mapping = aes(label = rownames(bucket_matrix)), vjust = 0, hjust = 0) +
+  stat_ellipse(mapping = aes(group = bucket_matrix$patho, color = bucket_matrix$patho)) +
+  labs(color = "Patho")
+
+# Buckets correlations
+corr_matrix <- cor(select(bucket_matrix, -any_of(categories)), method = "pearson") |> 
+  as.table() |> 
+  as.data.table()
+ggplot(corr_matrix, aes(x = V1, y = V2, fill = N)) +
+  geom_tile() +
+  scale_x_discrete(breaks = levels(corr_matrix$V2)[c(T, rep(F, 14))]) +
+  scale_y_discrete(breaks = levels(corr_matrix$V1)[c(T, rep(F, 14))]) +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  labs(title = "Spectral Data Correlation Heatmap", x = "Chemical Shift (buckets)", y = "Chemical Shift (buckets)")
+```
