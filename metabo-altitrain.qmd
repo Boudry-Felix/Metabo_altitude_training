@@ -1,0 +1,12 @@
+---
+title: "Metabolomics in altitude for trained and untrained subjects"
+author: Félix Boudry
+---
+
+```{r , include=FALSE, warning=FALSE}
+#| label: config
+#| warning: false
+#| include: false
+
+```
+
