@@ -49,6 +49,9 @@ po/*~
 rsconnect/
 
 ## Personal add
-metabo-altitrain.nb.html
 Data
+*_files
+*.html
 biblio.bib
+
+/.quarto/
